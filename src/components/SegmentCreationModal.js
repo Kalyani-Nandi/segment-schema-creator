@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 
-const options = [
+const schemaOptions = [
   { label: "First Name", value: "first_name" },
   { label: "Last Name", value: "last_name" },
   { label: "Gender", value: "gender" },
@@ -13,24 +13,19 @@ const options = [
 
 const SegmentCreationModal = ({ handleCloseModal }) => {
   const [segmentName, setSegmentName] = useState("");
-  const [selectedSchema, setSelectedSchema] = useState("");
-  const [schemas, setSchemas] = useState([]);
-  const [schemaOptions, setSchemaOptions] = useState(options);
+  const [selectedSchemas, setSelectedSchemas] = useState([]);
+  const [schema, setSchema] = useState("");
 
   const saveSagment = async () => {
-    if (!segmentName || !schemas.length) return;
+    if (!segmentName || !selectedSchemas.length) return;
 
-    const schema = schemas.map((schema) => ({
-      [schema]: options.find((option) => option.value === schema)?.label,
-    }));
-
-    const data = [
-      {
-        segmentName: segmentName,
-        schema: schema,
-      },
-    ];
-
+    const data = {
+      segment_name: segmentName,
+      schema: selectedSchemas.map((schema) => ({
+        [schema]: schemaOptions.find((option) => option.value === schema)
+          ?.label,
+      })),
+    };
     try {
       const response = await fetch(
         "https://webhook.site/7f98aed8-6e84-4e8c-99d8-377779a748f7",
@@ -57,21 +52,54 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
   };
 
   const addSchema = () => {
-    if (!selectedSchema) return;
-
-    setSchemas([...schemas, selectedSchema]);
-    setSchemaOptions((prevOptions) =>
-      prevOptions.filter((option) => option.value !== selectedSchema)
-    );
-    setSelectedSchema("");
+    if (!schema) return;
+    if (schema && !selectedSchemas.includes(schema)) {
+      setSelectedSchemas([...selectedSchemas, schema]);
+      setSchema("");
+    }
   };
 
-  
-  
+  const removeSchema = (removeIndex) => {
+    Swal.fire({
+      text: "Are you sure you want to remove this schema?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, remove it!",
+      cancelButtonText: "No, keep it",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedSchemas = selectedSchemas.filter(
+          (_, i) => i !== removeIndex
+        );
+        setSelectedSchemas(updatedSchemas);
+        Swal.fire("Removed!", "The schema has been removed.", "success");
+      } else {
+        Swal.fire("Cancelled", "The schema is safe :)", "error");
+      }
+    });
+  };
 
+  const schemaChange = (index, value) => {
+    const updatedSchemas = [...selectedSchemas];
+    updatedSchemas[index] = value;
+    setSelectedSchemas(updatedSchemas);
+  };
+
+  const handleClickOutside = (e) => {
+    if (e.target.id === "modal-overlay") {
+      handleCloseModal();
+    }
+  };
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-end z-50 transition-opacity duration-300 opacity-100">
-      <div className="bg-white h-full w-full max-w-4xl shadow-lg transform transition-transform duration-300 ease-in-out translate-x-0">
+    <div
+      id="modal-overlay"
+      onClick={handleClickOutside}
+      className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-end z-50 transition-opacity duration-300 opacity-100 cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white h-full w-full max-w-4xl shadow-lg transform transition-transform duration-300 ease-in-out translate-x-0 cursor-auto"
+      >
         <div className="bg-cyan-500 px-10 gap-10 py-5 text-white text-lg flex justify-between items-center">
           <h2 className="font-semibold">Saving Segment</h2>
           <button
@@ -90,6 +118,7 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
             <input
               name="segmentName"
               type="text"
+              placeholder="Name of the segment"
               className="border-2 border-gray-600 py-1.5 px-2.5 w-[70%] rounded"
               value={segmentName}
               onChange={(e) => setSegmentName(e.target.value)}
@@ -99,15 +128,17 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
           <div className="flex flex-col gap-5 text-base">
             <select
               className="border-2 border-gray-600 py-1.5 px-2.5 w-[70%] rounded"
-              value={selectedSchema}
-              onChange={(e) => setSelectedSchema(e.target.value)}
+              value={schema}
+              onChange={(e) => setSchema(e.target.value)}
             >
               <option value="">{"Add Schema to segment"}</option>
-              {schemaOptions?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              {schemaOptions
+                .filter((option) => !selectedSchemas.includes(option.value))
+                .map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
             </select>
 
             <button
@@ -118,25 +149,54 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
             </button>
           </div>
 
-          {schemas.map((schema, i) => (
+          {selectedSchemas.map((schema, i) => (
             <div className="flex  gap-5 text-base mt-4" key={i}>
-              <div className="border-2 border-gray-600 py-1.5 px-2.5 w-[70%] rounded">
-                <span>
-                  {options.find((option) => option.value === schema)?.label ||
-                    schema}
-                </span>
-              </div>
-              
+              <select
+                value={schema}
+                onChange={(e) => schemaChange(i, e.target.value)}
+                className="border-2 border-gray-600 py-1.5 px-2.5 w-[70%] rounded"
+              >
+                {schemaOptions
+                  .filter(
+                    (option) =>
+                      !selectedSchemas.includes(option.value) ||
+                      option.value === schema
+                  )
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+              </select>
+              <button
+                className="px-2 py-1 bg-red-200 border-2 border-red-600 rounded-md text-red-700"
+                onClick={() => removeSchema(i)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M18 12H6"
+                  />
+                </svg>
+              </button>
             </div>
           ))}
         </div>
 
         <div className="bg-gray-200 px-10 gap-10 py-5 font-bold text-base flex justify-between items-center absolute bottom-0 w-full">
           <button
-            disabled={!segmentName || !schemas.length}
+            disabled={!segmentName || !selectedSchemas.length}
             onClick={saveSagment}
             className={`px-10 py-1.5 rounded-md text-white ${
-              !segmentName || !schemas.length
+              !segmentName || !selectedSchemas.length
                 ? "cursor-not-allowed  bg-teal-400  "
                 : "cursor-pointer  bg-teal-500 "
             }`}
