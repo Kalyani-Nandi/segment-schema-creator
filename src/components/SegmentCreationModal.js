@@ -10,7 +10,7 @@ const schemaOptions = [
   { label: "City", value: "city" },
   { label: "State", value: "state" },
 ];
-
+const apiUrl = process.env.REACT_APP_API_URL;
 const SegmentCreationModal = ({ handleCloseModal }) => {
   const [segmentName, setSegmentName] = useState("");
   const [selectedSchemas, setSelectedSchemas] = useState([]);
@@ -27,17 +27,14 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
       })),
     };
     try {
-      const response = await fetch(
-        "https://webhook.site/7f98aed8-6e84-4e8c-99d8-377779a748f7",
-        {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const response = await fetch(`${apiUrl}`, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
       Swal.fire({
         position: "top-end",
         icon: "success",
