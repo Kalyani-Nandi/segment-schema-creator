@@ -123,6 +123,10 @@ const SegmentCreationModal = ({ handleCloseModal }) => {
           </div>
 
           <div className="flex flex-col gap-5 text-base">
+            <div className="font-bold text-gray-700">
+              To save your segment, you need to add the schemas to build the
+              query
+            </div>
             <select
               className="border-2 border-gray-600 py-1.5 px-2.5 w-[70%] rounded"
               value={schema}
